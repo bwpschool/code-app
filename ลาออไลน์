@@ -1,0 +1,180 @@
+var scon = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('config');
+var idFolder = scon.getRange('B5').getDisplayValues()
+var folder = DriveApp.getFolderById(idFolder);
+var token = scon.getRange('B6').getDisplayValues()
+var linkweb = scon.getRange('B7').getDisplayValues()
+
+function doGet() {
+  return HtmlService.createTemplateFromFile('index').evaluate()
+    .addMetaTag('viewport', 'width=device-width, initial-scale=1')
+    .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL)
+}
+
+/** เรียกเชื่อม include */
+function include(file) { return HtmlService.createHtmlOutputFromFile(file).getContent() }
+
+/** @ดึงค่า*/
+function getData(sh) {
+  return data = SpreadsheetApp.getActive().getSheetByName(sh).getDataRange().getDisplayValues().slice(1).filter(r=>r[0]!='')
+}
+
+/** เรียก URL */
+function getURL() { return url = ScriptApp.getService().getUrl();}
+
+
+// แก้ไขข้อมูล ลายเซ็น
+function updateIMG(imgsig,obj)   {
+  var wsname = obj.wsname
+  var ss = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(wsname);
+    let data = ss.getDataRange().getDisplayValues()
+    let row = data.findIndex(r=>r[0]==obj.id)+1
+
+    const dataimgsig = imgsig.split(",")[1];
+    const dataimgsigdecode = Utilities.base64Decode(dataimgsig);
+    const sigPictureblod = Utilities.newBlob(dataimgsigdecode).setName(obj.id+".png");
+    let file = folder.createFile(sigPictureblod).getId()
+    let imgsig_url ="https://lh5.googleusercontent.com/d/" + file
+
+if(row!=""){
+ss.getRange(row,2).setValue(obj.idUSER)
+ss.getRange(row,3).setValue(obj.username)
+ss.getRange(row,4).setValue(obj.userposi)
+ss.getRange(row,5).setValue(imgsig_url)
+ss.getRange(row,6).setValue("'"+obj.usertel)
+}
+ return true;
+ }
+
+
+function saveApp(id,menu_id,nowork,value){
+     const date = new Date().toLocaleDateString('th-TH', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+      })
+    const ss = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('data');
+    const data = ss.getDataRange().getDisplayValues()
+   
+    let row = data.findIndex(r=>r[0]==id)+1
+    const colNum = data[0].indexOf(menu_id)+1
+
+    ss.getRange(row,colNum).setValue(value)
+    ss.getRange(row,colNum+3).setValue(date)
+    ss.getRange(row,33).setValue(nowork)
+    if(nowork!=""){
+    ss.getRange(row,25).setValue('0')
+    ss.getRange(row,26).setValue('0')
+    ss.getRange(row,27).setValue('0')
+    ss.getRange(row,28).setValue('0')
+    ss.getRange(row,29).setValue('0')
+    ss.getRange(row,30).setValue('0')
+    ss.getRange(row,31).setValue('0')
+    ss.getRange(row,32).setValue('0')
+
+
+    }
+}
+
+function deleteData(id) {
+  var ss = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('data')
+  var data = ss.getDataRange().getDisplayValues()
+  let rowID = data.findIndex(r => r[0] == id) + 1
+  if (rowID > 0) {
+    ss.deleteRow(rowID);
+  }
+  return true;
+}
+
+
+
+// บันทึกแบบคำขอ
+function saveData(obj) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('data');
+    const date1 = new Date(obj.dateD).toLocaleDateString('th-TH', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+      })
+    const date2 = new Date(obj.dateTo).toLocaleDateString('th-TH', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+      })
+   const date3 = new Date(obj.dateForm).toLocaleDateString('th-TH', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+      })
+  if(obj.myFile1.length>1){
+  var file1 = folder.createFile(obj.myFile1).getUrl()
+  }else{
+      file1 =""
+  }
+
+    ss.appendRow([
+      "",
+      "'"+date1,
+      "'"+obj.codeuser,
+      obj.nameuser,
+      obj.subject,
+      obj.detail,
+      "'"+date2,
+      "'"+date3,
+      obj.numDate,
+
+      obj.txtold1,
+      obj.txtold2,
+      obj.txtold3,
+      obj.txtold4,
+      "'"+obj.txtold5,
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      obj.dataA1,
+      obj.dataB1,
+      obj.dataC1,
+      obj.dataD1,
+      obj.dataA2,
+      obj.dataB2,
+      obj.dataC2,
+      obj.dataD2,
+      obj.dataA3,
+      obj.dataB3,
+      obj.dataC3,
+      obj.dataD3,
+      "",
+      file1
+    ])
+    let msg1 ="แจ้งขออนุญาตลาออนไลน์\n" + "ผู้ขอ : "+ obj.nameuser
+    let msg2 ="\nขอลา : " +obj.subject+"\nระหว่างวันที่ : "+date2+"\nถึงวันที่ : "+date3
+    let msg3 ="\nเข้าระบบสำหรับ admin : " + linkweb
+    let msg = msg1+msg2+msg3
+    if(token !=""){
+    sendNotify(msg,token)
+    }
+
+}
+
+function sendNotify(msg,token){
+let payloadJson = {
+  "message": msg
+        // "imageFile": image
+    };
+    let options = {
+        "method": "post",
+        "payload": payloadJson,
+        "headers": {
+            "Authorization": "Bearer " + token
+        }
+    };
+    UrlFetchApp.fetch("https://notify-api.line.me/api/notify", options);
+}
+
+
+
+
+รidex------------------
+  
